@@ -45,7 +45,7 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
 * **Content-Type**: application/x-www-form-urlencoded
 * Request Parameters:
   * **type** (String): "I" for Initialized, "D" for Destroyed
-  * **ts** (long): Timestamp in milliseconds (Epoch-Unix-UTC). see [System.currentTimeMillis()](https://docs.oracle.com/javase/7/docs/api/java/lang/System.html#currentTimeMillis()).
+  * **ts** (long): Timestamp Unix Epoch in milliseconds (UTC). see [System.currentTimeMillis()](https://docs.oracle.com/javase/7/docs/api/java/lang/System.html#currentTimeMillis()).
   * **jvmid** (String): The name representing the running Java virtual machine (like **pid**@**hostname**). Can be any arbitrary string and a Java virtual machine implementation can choose to embed platform-specific useful information in the returned name string. see [RuntimeMXBean.getName](http://docs.oracle.com/javase/7/docs/api/java/lang/management/RuntimeMXBean.html#getName()) 
   * **path** (String): like "/test" or "" (empty string, for root context)
   * **basename** (String): normalized path. see [Tomcat Basenames](https://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Naming)
