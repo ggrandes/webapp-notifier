@@ -4,7 +4,7 @@
 
 	<groupId>org.javastack</groupId>
 	<artifactId>webapp-notifier</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<description>Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a remote URL</description>
 
 	<dependencies>

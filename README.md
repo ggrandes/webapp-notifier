@@ -2,7 +2,7 @@
 
 Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a remote URL. Open Source Java project under Apache License v2.0
 
-### Current Stable Version is [1.0.0](https://search.maven.org/#search|ga|1|g%3Aorg.javastack%20a%3Awebapp-notifier)
+### Current Stable Version is [1.0.1](https://search.maven.org/#search|ga|1|g%3Aorg.javastack%20a%3Awebapp-notifier)
 
 ---
 
@@ -57,7 +57,7 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
     <dependency>
         <groupId>org.javastack</groupId>
         <artifactId>webapp-notifier</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </dependency>
 
 ---
