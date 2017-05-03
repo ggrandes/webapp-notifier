@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Runner {
 	private static final Runner singleton = new Runner();
-	private ExecutorService pool = null;
+	private static final String PROP_EXECUTOR_KEY = "ec26e2b1-02c6-4639-a679-b3576ba6cb4f";
 
 	private Runner() {
 	}
@@ -18,34 +18,52 @@ public class Runner {
 		return singleton;
 	}
 
-	public synchronized void init() {
-		if (!isReady()) {
-			this.pool = Executors.newSingleThreadExecutor(new DaemonThreadFactory());
-			this.pool.submit(new Runnable() {
-				@Override
-				public void run() {
-				}
-			});
+	private ExecutorService getPool() {
+		synchronized (System.class) {
+			return (ExecutorService) System.getProperties().get(PROP_EXECUTOR_KEY);
 		}
 	}
 
-	public synchronized boolean isReady() {
+	private void setPool(final ExecutorService pool) {
+		synchronized (System.class) {
+			System.getProperties().put(PROP_EXECUTOR_KEY, pool);
+		}
+	}
+
+	public void init() {
+		if (!isReady()) {
+			synchronized (System.class) {
+				final ExecutorService pool = Executors.newSingleThreadExecutor(new DaemonThreadFactory());
+				pool.submit(new Runnable() {
+					@Override
+					public void run() {
+					}
+				});
+				setPool(pool);
+			}
+		}
+	}
+
+	public boolean isReady() {
+		final ExecutorService pool = getPool();
 		return ((pool != null) && !pool.isShutdown());
 	}
 
-	public synchronized Future<?> submit(final Runnable task) {
+	public Future<?> submit(final Runnable task) {
 		if (isReady()) {
+			final ExecutorService pool = getPool();
 			return pool.submit(task);
 		}
 		return null;
 	}
 
-	public synchronized boolean destroy() {
+	public boolean destroy() {
+		final ExecutorService pool = getPool();
 		if (pool != null) {
 			try {
 				return shutdownAndAwaitTermination(pool);
 			} finally {
-				pool = null;
+				setPool(null);
 			}
 		}
 		return true;
@@ -75,8 +93,8 @@ public class Runner {
 		private final AtomicInteger threadNumber = new AtomicInteger(1);
 
 		public Thread newThread(final Runnable r) {
-			final Thread t = new Thread(r, Runner.class.getSimpleName() + "-"
-					+ threadNumber.getAndIncrement());
+			final Thread t = new Thread(r,
+					Runner.class.getSimpleName() + "-" + threadNumber.getAndIncrement());
 			t.setDaemon(true);
 			t.setPriority(Thread.NORM_PRIORITY);
 			return t;

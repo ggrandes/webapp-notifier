@@ -63,6 +63,11 @@ public class WebAppNotifierContextListener implements ServletContextListener {
 	 */
 	public static final int DEF_RETRY_COUNT = 2;
 
+	private final String notifyURL = System.getProperty(URL_PROP);
+	private final int connectTimeout = Math.max(Integer.getInteger(CONNECT_PROP, DEF_CONNECT_TIMEOUT), 1000);
+	private final int readTimeout = Math.max(Integer.getInteger(READ_PROP, DEF_READ_TIMEOUT), 1000);
+	private final int tries = 1 + Math.max(Integer.getInteger(RETRY_PROP, DEF_RETRY_COUNT), 0);
+
 	@Override
 	public void contextInitialized(final ServletContextEvent contextEvent) {
 		doEnqueOrRun(contextEvent, true);
@@ -92,10 +97,6 @@ public class WebAppNotifierContextListener implements ServletContextListener {
 		final ServletContext ctx = contextEvent.getServletContext();
 		final String path = ctx.getContextPath();
 		final String basename = getContextBaseName(ctx);
-		final String notifyURL = System.getProperty(URL_PROP);
-		final int connectTimeout = Math.max(Integer.getInteger(CONNECT_PROP, DEF_CONNECT_TIMEOUT), 1000);
-		final int readTimeout = Math.max(Integer.getInteger(READ_PROP, DEF_READ_TIMEOUT), 1000);
-		final int tries = 1 + Math.max(Integer.getInteger(RETRY_PROP, DEF_RETRY_COUNT), 0);
 		if (notifyURL == null) {
 			ctx.log("[ERROR] Invalid System Property: " + URL_PROP + " (null)");
 			return;
@@ -158,8 +159,8 @@ public class WebAppNotifierContextListener implements ServletContextListener {
 	}
 
 	private final int request(final URL url, final int connectTimeout, final int readTimeout,
-			final String method, final String contentType, final InputStream doOutput, final int contentLength)
-			throws IOException {
+			final String method, final String contentType, final InputStream doOutput,
+			final int contentLength) throws IOException {
 		HttpURLConnection conn = null;
 		InputStream urlIs = null;
 		OutputStream urlOs = null;

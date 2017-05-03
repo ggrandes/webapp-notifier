@@ -8,7 +8,7 @@ import org.apache.juli.logging.LogFactory;
 
 /**
  * <pre>
- * &lt;-- In server --&gt
+ * &lt;-- In server --&gt;
  * &lt;Listener className="org.javastack.webappnotifier.RunnerLifecycleListener" /&gt;
  * </pre>
  */
