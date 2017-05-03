@@ -26,7 +26,11 @@ public class Runner {
 
 	private void setPool(final ExecutorService pool) {
 		synchronized (System.class) {
-			System.getProperties().put(PROP_EXECUTOR_KEY, pool);
+			if (pool != null) {
+				System.getProperties().put(PROP_EXECUTOR_KEY, pool);
+			} else {
+				System.getProperties().remove(PROP_EXECUTOR_KEY);
+			}
 		}
 	}
 
