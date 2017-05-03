@@ -19,24 +19,20 @@ public class Runner {
 	}
 
 	private ExecutorService getPool() {
-		synchronized (System.class) {
-			return (ExecutorService) System.getProperties().get(PROP_EXECUTOR_KEY);
-		}
+		return (ExecutorService) System.getProperties().get(PROP_EXECUTOR_KEY);
 	}
 
 	private void setPool(final ExecutorService pool) {
-		synchronized (System.class) {
-			if (pool != null) {
-				System.getProperties().put(PROP_EXECUTOR_KEY, pool);
-			} else {
-				System.getProperties().remove(PROP_EXECUTOR_KEY);
-			}
+		if (pool != null) {
+			System.getProperties().put(PROP_EXECUTOR_KEY, pool);
+		} else {
+			System.getProperties().remove(PROP_EXECUTOR_KEY);
 		}
 	}
 
 	public void init() {
-		if (!isReady()) {
-			synchronized (System.class) {
+		synchronized (System.class) {
+			if (!isReady()) {
 				final ExecutorService pool = Executors.newSingleThreadExecutor(new DaemonThreadFactory());
 				pool.submit(new Runnable() {
 					@Override
@@ -49,25 +45,31 @@ public class Runner {
 	}
 
 	public boolean isReady() {
-		final ExecutorService pool = getPool();
-		return ((pool != null) && !pool.isShutdown());
+		synchronized (System.class) {
+			final ExecutorService pool = getPool();
+			return ((pool != null) && !pool.isShutdown());
+		}
 	}
 
 	public Future<?> submit(final Runnable task) {
-		if (isReady()) {
-			final ExecutorService pool = getPool();
-			return pool.submit(task);
+		synchronized (System.class) {
+			if (isReady()) {
+				final ExecutorService pool = getPool();
+				return pool.submit(task);
+			}
 		}
 		return null;
 	}
 
 	public boolean destroy() {
-		final ExecutorService pool = getPool();
-		if (pool != null) {
-			try {
-				return shutdownAndAwaitTermination(pool);
-			} finally {
-				setPool(null);
+		synchronized (System.class) {
+			final ExecutorService pool = getPool();
+			if (pool != null) {
+				try {
+					return shutdownAndAwaitTermination(pool);
+				} finally {
+					setPool(null);
+				}
 			}
 		}
 		return true;
