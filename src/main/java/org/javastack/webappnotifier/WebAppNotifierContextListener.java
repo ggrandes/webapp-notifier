@@ -122,7 +122,7 @@ public class WebAppNotifierContextListener implements ServletContextListener {
 				final byte[] body = sb.toString().getBytes(ENCODING);
 				final int retCode = request(url, connectTimeout, readTimeout, "POST",
 						"application/x-www-form-urlencoded", new ByteArrayInputStream(body), body.length);
-				// Dont retry: Info (1xx), OK (2xx), Redir (2xx), Client Error (4xx)
+				// Dont retry: Info (1xx), OK (2xx), Redir (3xx), Client Error (4xx)
 				if ((retCode >= 100) && (retCode <= 499)) {
 					ctx.log(trace + " retCode=" + retCode);
 					break;
