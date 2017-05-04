@@ -49,6 +49,10 @@ public class WebAppNotifierContextListener implements ServletContextListener {
 	 * Constant for: <b>org.javastack.webapp.notifier.retryCount</b>
 	 */
 	public static final String RETRY_PROP = BASE_PROP + "retryCount";
+	/**
+	 * Constant for: <b>org.javastack.webapp.notifier.customValue</b>
+	 */
+	public static final String CUSTOM_PROP = BASE_PROP + "customValue";
 
 	/**
 	 * Default connect timeout: 5sec
@@ -67,6 +71,7 @@ public class WebAppNotifierContextListener implements ServletContextListener {
 	private final int connectTimeout = Math.max(Integer.getInteger(CONNECT_PROP, DEF_CONNECT_TIMEOUT), 1000);
 	private final int readTimeout = Math.max(Integer.getInteger(READ_PROP, DEF_READ_TIMEOUT), 1000);
 	private final int tries = 1 + Math.max(Integer.getInteger(RETRY_PROP, DEF_RETRY_COUNT), 0);
+	private final String customValue = System.getProperty(CUSTOM_PROP, "");
 
 	@Override
 	public void contextInitialized(final ServletContextEvent contextEvent) {
@@ -117,6 +122,9 @@ public class WebAppNotifierContextListener implements ServletContextListener {
 				sb.append("type=").append(initOrDestroy ? "I" : "D").append('&');
 				sb.append("ts=").append(System.currentTimeMillis()).append('&');
 				sb.append("jvmid=").append(URLEncoder.encode(jmx.getName(), ENCODING)).append('&');
+				if (customValue != null) {
+					sb.append("custom=").append(URLEncoder.encode(customValue, ENCODING)).append('&');
+				}
 				sb.append("path=").append(URLEncoder.encode(path, ENCODING)).append('&');
 				sb.append("basename=").append(URLEncoder.encode(basename, ENCODING));
 				final byte[] body = sb.toString().getBytes(ENCODING);

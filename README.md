@@ -2,7 +2,7 @@
 
 Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a remote URL. Open Source Java project under Apache License v2.0
 
-### Current Stable Version is [1.0.1](https://search.maven.org/#search|ga|1|g%3Aorg.javastack%20a%3Awebapp-notifier)
+### Current Stable Version is [1.0.2](https://search.maven.org/#search|ga|1|g%3Aorg.javastack%20a%3Awebapp-notifier)
 
 ---
 
@@ -38,6 +38,7 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
 * **org.javastack.webappnotifier.defaultConnectTimeout** (milliseconds): default 5000 (5secs)
 * **org.javastack.webappnotifier.defaultReadTimeout** (milliseconds): default 5000 (5secs)
 * **org.javastack.webappnotifier.retryCount** (int): default 2 retries
+* **org.javastack.webappnotifier.customValue** (String): no default
 
 #### HTTP request API
 
@@ -47,6 +48,7 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
   * **type** (String): "I" for Initialized, "D" for Destroyed
   * **ts** (long): Timestamp Unix Epoch in milliseconds (UTC). see [System.currentTimeMillis()](https://docs.oracle.com/javase/7/docs/api/java/lang/System.html#currentTimeMillis()).
   * **jvmid** (String): The name representing the running Java virtual machine (like **pid**@**hostname**). Can be any arbitrary string and a Java virtual machine implementation can choose to embed platform-specific useful information in the returned name string. see [RuntimeMXBean.getName](http://docs.oracle.com/javase/7/docs/api/java/lang/management/RuntimeMXBean.html#getName()) 
+  * **custom** (String): Value from Configuration (`org.javastack.webappnotifier.customValue`)
   * **path** (String): like "/test" or "" (empty string, for root context)
   * **basename** (String): normalized path. see [Tomcat Basenames](https://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Naming)
 
@@ -57,7 +59,7 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
     <dependency>
         <groupId>org.javastack</groupId>
         <artifactId>webapp-notifier</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </dependency>
 
 ---
