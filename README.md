@@ -2,7 +2,7 @@
 
 Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a remote URL. Open Source Java project under Apache License v2.0
 
-### Current Stable Version is [1.0.2](https://search.maven.org/#search|ga|1|g%3Aorg.javastack%20a%3Awebapp-notifier)
+### Current Stable Version is [1.1.0](https://search.maven.org/#search|ga|1|g%3Aorg.javastack%20a%3Awebapp-notifier)
 
 ---
 
@@ -18,23 +18,28 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
 <!-- Context Listener for Servlet Container -->
 <!-- tomcat/conf/web.xml or WEB-INF/web.xml -->
 <listener>
-	<description>Notify about start and stop of WebApp to a remote URL</description>
-	<listener-class>org.javastack.webappnotifier.WebAppNotifierContextListener</listener-class>
+  <description>Notify about start and stop of WebApp to a remote URL</description>
+  <listener-class>org.javastack.webappnotifier.WebAppNotifierContextListener</listener-class>
 </listener>
 ```
 
 ```xml
 <!-- tomcat/conf/server.xml (recomended, but optional) -->
 <Server ...>
+  <!-- Background Runner Thread for notifier -->
   <Listener className="org.javastack.webappnotifier.RunnerLifecycleListener" />
+  <!-- Notify about endpoints in Tomcat -->
+  <Listener className="org.javastack.webappnotifier.TomcatLifecycleListener" 
+            resolveHostname="false" />
 ...
 ```
 
 ###### Notifies are blocking, unless you enable the RunnerLifecycleListener 
+###### By default only context are notified, unless you enable the TomcatLifecycleListener
 
 #### Configuration (system properties)
 
-* **org.javastack.webappnotifier.url** (String): like http://api.acme.com/notifier
+* **org.javastack.webappnotifier.url** (String): like http://api.acme.com/notifier, no default
 * **org.javastack.webappnotifier.defaultConnectTimeout** (milliseconds): default 5000 (5secs)
 * **org.javastack.webappnotifier.defaultReadTimeout** (milliseconds): default 5000 (5secs)
 * **org.javastack.webappnotifier.retryCount** (int): default 2 retries
@@ -45,12 +50,20 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
 * **Method**: POST
 * **Content-Type**: application/x-www-form-urlencoded
 * Request Parameters:
-  * **type** (String): "I" for Initialized, "D" for Destroyed
   * **ts** (long): Timestamp Unix Epoch in milliseconds (UTC). see [System.currentTimeMillis()](https://docs.oracle.com/javase/7/docs/api/java/lang/System.html#currentTimeMillis()).
   * **jvmid** (String): The name representing the running Java virtual machine (like **pid**@**hostname**). Can be any arbitrary string and a Java virtual machine implementation can choose to embed platform-specific useful information in the returned name string. see [RuntimeMXBean.getName](http://docs.oracle.com/javase/7/docs/api/java/lang/management/RuntimeMXBean.html#getName()) 
   * **custom** (String): Value from Configuration (`org.javastack.webappnotifier.customValue`)
-  * **path** (String): like "/test" or "" (empty string, for root context)
-  * **basename** (String): normalized path. see [Tomcat Basenames](https://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Naming)
+  * **type** (String): "I" for Initialized, "D" for Destroyed
+  * **event** (String): "C" for Context, "E" for EndPoint
+    * _Context params_:
+      * **path** (String): like "/test" or "" (empty string, for root context)
+      * **basename** (String): normalized path. see [Tomcat Basenames](https://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Naming)
+    * _EndPoint params_:
+      * **http** (String Array): like "http://api3.acme.com:8080"
+      * **https** (String Array): like "https://api4.acme.com:8443"
+      * **ajp** (String Array): like "ajp://api5.acme.com:8009"
+
+###### * String Array in x-www-form-urlencoded are like: k=v1&k=v2&k=v3 (in a servlet you can get the `String[]` with: `request.getParameterValues("k")`)
 
 ---
 
@@ -59,7 +72,7 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
     <dependency>
         <groupId>org.javastack</groupId>
         <artifactId>webapp-notifier</artifactId>
-        <version>1.0.2</version>
+        <version>1.1.0</version>
     </dependency>
 
 ---

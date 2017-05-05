@@ -1,4 +1,4 @@
-package org.javastack.webappnotifier;
+package org.javastack.webappnotifier.util;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -7,14 +7,14 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class Runner {
-	private static final Runner singleton = new Runner();
+public class NotifierRunner {
+	private static final NotifierRunner singleton = new NotifierRunner();
 	private static final String PROP_EXECUTOR_KEY = "ec26e2b1-02c6-4639-a679-b3576ba6cb4f";
 
-	private Runner() {
+	private NotifierRunner() {
 	}
 
-	public static Runner getInstance() {
+	public static NotifierRunner getInstance() {
 		return singleton;
 	}
 
@@ -100,7 +100,7 @@ public class Runner {
 
 		public Thread newThread(final Runnable r) {
 			final Thread t = new Thread(r,
-					Runner.class.getSimpleName() + "-" + threadNumber.getAndIncrement());
+					NotifierRunner.class.getSimpleName() + "-" + threadNumber.getAndIncrement());
 			t.setDaemon(true);
 			t.setPriority(Thread.NORM_PRIORITY);
 			return t;
