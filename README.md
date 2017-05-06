@@ -58,6 +58,7 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
     * _Context params_:
       * **path** (String): like "/test" or "" (empty string, for root context)
       * **basename** (String): normalized path. see [Tomcat Basenames](https://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Naming)
+      * **service** (String): like "Catalina"
     * _EndPoint params_:
       * **service** (String): like "Catalina"
       * **http** (String Array): like "http://api3.acme.com:8080"

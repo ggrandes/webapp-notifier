@@ -12,6 +12,7 @@ import javax.servlet.annotation.WebListener;
 
 import org.javastack.webappnotifier.util.GenericNotifier;
 import org.javastack.webappnotifier.util.NotifierRunner;
+import org.javastack.webappnotifier.util.TomcatHelper;
 
 /**
  * Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a remote URL
@@ -61,14 +62,37 @@ public class WebAppNotifierContextListener extends GenericNotifier implements Se
 		return (path.isEmpty() ? "ROOT" : path.substring(1).replace('/', '#'));
 	}
 
+	private final String getServiceName(final ServletContext ctx) {
+		String service = null;
+		try {
+			service = new TomcatHelper().getServiceNameFromClassLoader(ctx);
+			if (service != null) {
+				return service;
+			}
+		} catch (Throwable t) {
+			ctx.log(getClass().getName() + " context: unable to getServiceName(classloader): " + t);
+		}
+		try {
+			service = new TomcatHelper().getEngineNameByReflect(ctx);
+			if (service != null) {
+				return service;
+			}
+		} catch (Throwable t) {
+			ctx.log(getClass().getName() + " context: unable to getEngineName(reflect): " + t);
+		}
+		return "";
+	}
+
 	private final void doContextNotify(final ServletContext ctx, final boolean initOrDestroy) {
 		final String path = ctx.getContextPath();
 		final String basename = getContextBaseName(ctx);
+		final String service = getServiceName(ctx);
 		for (int i = 0; i < tries; i++) {
 			final String trace = getClass().getName() + " context: " + //
 					(initOrDestroy ? "Initialized" : "Destroyed") + //
 					" path=" + path + //
 					" basename=" + basename + //
+					" service=" + service + //
 					" connect=" + connectTimeout + "ms" + //
 					" read=" + readTimeout + "ms" + //
 					" try=" + (i + 1) + "/" + tries + //
@@ -85,6 +109,7 @@ public class WebAppNotifierContextListener extends GenericNotifier implements Se
 				sb.append("type=").append(initOrDestroy ? "I" : "D").append('&');
 				sb.append("path=").append(URLEncoder.encode(path, ENCODING)).append('&');
 				sb.append("basename=").append(URLEncoder.encode(basename, ENCODING)).append('&');
+				sb.append("service=").append(URLEncoder.encode(service, ENCODING)).append('&');
 				sb.append("event=").append("C");
 				final byte[] body = sb.toString().getBytes(ENCODING);
 				final int retCode = request(url, connectTimeout, readTimeout, "POST",
