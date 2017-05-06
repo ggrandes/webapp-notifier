@@ -104,7 +104,7 @@ public class TomcatLifecycleListener extends GenericNotifier implements Lifecycl
 					}
 					final String host = addr.getHostAddress();
 					final String ep = scheme + "://" + host + ":" + port;
-					log.info("Discovered endpoint (" + protocol + ")(resolve): " + ep);
+					log.info("Discovered endpoint(" + svc + ") (" + protocol + "): " + ep + " (ip)");
 					if (scheme.equalsIgnoreCase("ajp")) {
 						ajp.add(ep);
 					} else if (scheme.equalsIgnoreCase("http")) {
@@ -115,7 +115,7 @@ public class TomcatLifecycleListener extends GenericNotifier implements Lifecycl
 				}
 			} else {
 				final String ep = scheme + "://" + hostname + ":" + port;
-				log.info("Discovered endpoint (" + protocol + ")(noresolve): " + ep);
+				log.info("Discovered endpoint(" + svc + ") (" + protocol + "): " + ep + " (name)");
 				if (scheme.equalsIgnoreCase("ajp")) {
 					ajp.add(ep);
 				} else if (scheme.equalsIgnoreCase("http")) {
@@ -135,7 +135,7 @@ public class TomcatLifecycleListener extends GenericNotifier implements Lifecycl
 		for (Iterator<ObjectName> i = objs.iterator(); i.hasNext();) {
 			final ObjectName obj = i.next();
 			final String jvmRoute = mapNull(mbs.getAttribute(obj, "jvmRoute"));
-			log.info("Discovered jvmRoute: " + (jvmRoute.isEmpty() ? "<EMPTY>" : jvmRoute));
+			log.info("Discovered jvmRoute(" + svc + "): " + (jvmRoute.isEmpty() ? "<EMPTY>" : jvmRoute));
 			return jvmRoute;
 		}
 		return "";
