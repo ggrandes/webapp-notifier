@@ -134,14 +134,18 @@ public class TomcatLifecycleListener extends GenericNotifier implements Lifecycl
 		final Set<ObjectName> objs = mbs.queryNames(new ObjectName(svc + ":type=Engine"), query);
 		for (Iterator<ObjectName> i = objs.iterator(); i.hasNext();) {
 			final ObjectName obj = i.next();
-			String jvmRoute = String.valueOf(mbs.getAttribute(obj, "jvmRoute"));
-			if (jvmRoute == null) {
-				jvmRoute = "";
-			}
-			log.info("Discovered jvmRoute: " + jvmRoute);
+			final String jvmRoute = mapNull(mbs.getAttribute(obj, "jvmRoute"));
+			log.info("Discovered jvmRoute: " + (jvmRoute.isEmpty() ? "<EMPTY>" : jvmRoute));
 			return jvmRoute;
 		}
 		return "";
+	}
+
+	private String mapNull(final Object o) {
+		if (o == null) {
+			return "";
+		}
+		return String.valueOf(o);
 	}
 
 	private void selfDiscovery()
