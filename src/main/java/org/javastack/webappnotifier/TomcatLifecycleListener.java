@@ -189,7 +189,7 @@ public class TomcatLifecycleListener extends GenericNotifier implements Lifecycl
 	}
 
 	private final void doEndpointNotify(final boolean initOrDestroy) {
-		log.info("Notify services (1): " + endpoints.keySet());
+		log.info("Notify services: " + endpoints.keySet());
 		RETRY: for (int i = 0; i < tries; i++) {
 			final String trace = getClass().getName() + " endpoint: " + //
 					(initOrDestroy ? "Initialized" : "Destroyed") + //
@@ -202,7 +202,7 @@ public class TomcatLifecycleListener extends GenericNotifier implements Lifecycl
 			try {
 				ENDPOINT: for (final Entry<String, Endpoint> e : endpoints.entrySet()) {
 					final String serviceName = e.getKey();
-					log.info("Notify service (2): " + serviceName);
+					log.info("Notify service: " + serviceName);
 					final Endpoint ep = e.getValue();
 					final URL url = new URL(notifyURL);
 					final StringBuilder sb = new StringBuilder();
