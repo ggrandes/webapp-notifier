@@ -59,9 +59,11 @@ Notify about start and stop of WebApp in a Servlet Container (like Tomcat) to a 
       * **path** (String): like "/test" or "" (empty string, for root context)
       * **basename** (String): normalized path. see [Tomcat Basenames](https://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Naming)
     * _EndPoint params_:
+      * **service** (String): like "Catalina"
       * **http** (String Array): like "http://api3.acme.com:8080"
       * **https** (String Array): like "https://api4.acme.com:8443"
       * **ajp** (String Array): like "ajp://api5.acme.com:8009"
+      * **jvmroute** (String): like "jvm1" or "" (empty string if not defined)
 
 ###### * String Array in x-www-form-urlencoded are like: k=v1&k=v2&k=v3 (in a servlet you can get the `String[]` with: `request.getParameterValues("k")`)
 

@@ -82,16 +82,16 @@ public class WebAppNotifierContextListener extends GenericNotifier implements Se
 				if (customValue != null) {
 					sb.append("custom=").append(URLEncoder.encode(customValue, ENCODING)).append('&');
 				}
-				sb.append("event=").append("C").append('&');
 				sb.append("type=").append(initOrDestroy ? "I" : "D").append('&');
 				sb.append("path=").append(URLEncoder.encode(path, ENCODING)).append('&');
-				sb.append("basename=").append(URLEncoder.encode(basename, ENCODING));
+				sb.append("basename=").append(URLEncoder.encode(basename, ENCODING)).append('&');
+				sb.append("event=").append("C");
 				final byte[] body = sb.toString().getBytes(ENCODING);
 				final int retCode = request(url, connectTimeout, readTimeout, "POST",
 						"application/x-www-form-urlencoded", new ByteArrayInputStream(body), body.length);
 				// Dont retry: Info (1xx), OK (2xx), Redir (3xx), Client Error (4xx)
 				if ((retCode >= 100) && (retCode <= 499)) {
-					ctx.log(trace + " retCode=" + retCode + " (noretry)");
+					ctx.log(trace + " retCode=" + retCode + (retCode < 400 ? " (ok)" : " (noretry)"));
 					break;
 				} else {
 					final long sleep = getRandomSleep(needSleep, 100, 3000);
