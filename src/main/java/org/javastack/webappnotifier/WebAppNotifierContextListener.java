@@ -26,6 +26,9 @@ import org.javastack.webappnotifier.util.TomcatHelper;
  */
 @WebListener
 public class WebAppNotifierContextListener extends GenericNotifier implements ServletContextListener {
+	private static final String KEY_CACHE = WebAppNotifierContextListener.class.getName()
+			+ ".serviceName.cache";
+
 	@Override
 	public void contextInitialized(final ServletContextEvent contextEvent) {
 		if (notifyURL == null) {
@@ -46,14 +49,15 @@ public class WebAppNotifierContextListener extends GenericNotifier implements Se
 		final boolean enqueue = NotifierRunner.getInstance().isReady();
 		final ServletContext ctx = contextEvent.getServletContext();
 		ctx.log(getClass().getName() + " Context " + (enqueue ? "ENQUEUE" : "BLOCKING") + " mode");
+		final String service = getServiceName(ctx);
 		if (enqueue) {
 			NotifierRunner.getInstance().submit(new Thread() {
 				public void run() {
-					doContextNotify(ctx, initOrDestroy);
+					doContextNotify(ctx, service, initOrDestroy);
 				}
 			});
 		} else {
-			doContextNotify(ctx, initOrDestroy);
+			doContextNotify(ctx, service, initOrDestroy);
 		}
 	}
 
@@ -63,10 +67,15 @@ public class WebAppNotifierContextListener extends GenericNotifier implements Se
 	}
 
 	private final String getServiceName(final ServletContext ctx) {
-		String service = null;
+		String service = (String) ctx.getAttribute(KEY_CACHE);
+		if (service != null) {
+			return service;
+		}
 		try {
 			service = new TomcatHelper().getServiceNameFromClassLoader(ctx);
 			if (service != null) {
+				ctx.log(getClass().getName() + " context: getServiceName(classloader): " + service);
+				ctx.setAttribute(KEY_CACHE, service);
 				return service;
 			}
 		} catch (Throwable t) {
@@ -75,18 +84,21 @@ public class WebAppNotifierContextListener extends GenericNotifier implements Se
 		try {
 			service = new TomcatHelper().getEngineNameByReflect(ctx);
 			if (service != null) {
+				ctx.log(getClass().getName() + " context: getEngineName(reflect): " + service);
+				ctx.setAttribute(KEY_CACHE, service);
 				return service;
 			}
 		} catch (Throwable t) {
 			ctx.log(getClass().getName() + " context: unable to getEngineName(reflect): " + t);
 		}
-		return "";
+		service = "";
+		ctx.setAttribute(KEY_CACHE, service);
+		return service;
 	}
 
-	private final void doContextNotify(final ServletContext ctx, final boolean initOrDestroy) {
+	private final void doContextNotify(final ServletContext ctx, final String service, final boolean initOrDestroy) {
 		final String path = ctx.getContextPath();
 		final String basename = getContextBaseName(ctx);
-		final String service = getServiceName(ctx);
 		for (int i = 0; i < tries; i++) {
 			final String trace = getClass().getName() + " context: " + //
 					(initOrDestroy ? "Initialized" : "Destroyed") + //
