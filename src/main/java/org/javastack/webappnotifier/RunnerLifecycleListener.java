@@ -25,7 +25,7 @@ public class RunnerLifecycleListener implements LifecycleListener {
 		} else if (Lifecycle.AFTER_DESTROY_EVENT.equals(type)) {
 			log.info("Destroy " + RunnerLifecycleListener.class.getName());
 			if (!NotifierRunner.getInstance().destroy()) {
-				log.error("Destroy Failed");
+				log.error("Destroy unclean");
 			}
 			log.info("Destroyed " + RunnerLifecycleListener.class.getName());
 		}

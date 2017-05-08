@@ -1,10 +1,8 @@
 package org.javastack.webappnotifier;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.util.Collections;
@@ -183,73 +181,54 @@ public class TomcatLifecycleListener extends GenericNotifier implements Lifecycl
 			return;
 		}
 		final boolean enqueue = NotifierRunner.getInstance().isReady();
-		log.info(getClass().getName() + " Endpoint " + (enqueue ? "ENQUEUE" : "BLOCKING") + " mode");
-		if (enqueue) {
-			NotifierRunner.getInstance().submit(new Thread() {
-				public void run() {
-					doEndpointNotify(initOrDestroy);
-				}
-			});
-		} else {
-			doEndpointNotify(initOrDestroy);
-		}
-	}
-
-	private final void doEndpointNotify(final boolean initOrDestroy) {
-		log.info("Notify services: " + endpoints.keySet());
-		RETRY: for (int i = 0; i < tries; i++) {
-			final String trace = getClass().getName() + " endpoint: " + //
-					(initOrDestroy ? "Initialized" : "Destroyed") + //
-					" endpoints=" + endpoints + //
-					" connect=" + connectTimeout + "ms" + //
-					" read=" + readTimeout + "ms" + //
-					" try=" + (i + 1) + "/" + tries + //
-					" notifyURL=" + notifyURL;
-			final boolean needSleep = ((i + 1) < tries);
+		final String trace = getClass().getName() + " endpoint(" + (enqueue ? "QUEUE" : "BLOCKING") + "): " + //
+				(initOrDestroy ? "Initialized" : "Destroyed") + //
+				" endpoints=" + endpoints + //
+				" connect=" + connectTimeout + "ms" + //
+				" read=" + readTimeout + "ms" + //
+				" notifyURL=" + notifyURL;
+		log.info(trace);
+		//
+		final StringBuilder sb = new StringBuilder();
+		for (final Entry<String, Endpoint> e : endpoints.entrySet()) {
+			final String serviceName = e.getKey();
+			final Endpoint ep = e.getValue();
+			final String body;
 			try {
-				ENDPOINT: for (final Entry<String, Endpoint> e : endpoints.entrySet()) {
-					final String serviceName = e.getKey();
-					log.info("Notify service: " + serviceName);
-					final Endpoint ep = e.getValue();
-					final URL url = new URL(notifyURL);
-					final StringBuilder sb = new StringBuilder();
-					sb.append("ts=").append(System.currentTimeMillis()).append('&');
-					sb.append("jvmid=").append(URLEncoder.encode(jmx.getName(), ENCODING)).append('&');
-					if (customValue != null) {
-						sb.append("custom=").append(URLEncoder.encode(customValue, ENCODING)).append('&');
-					}
-					sb.append("type=").append(initOrDestroy ? "I" : "D").append('&');
-					sb.append("service=").append(serviceName).append('&');
-					for (final String p : ep.https) {
-						sb.append("https=").append(URLEncoder.encode(p, ENCODING)).append('&');
-					}
-					for (final String p : ep.http) {
-						sb.append("http=").append(URLEncoder.encode(p, ENCODING)).append('&');
-					}
-					for (final String p : ep.ajp) {
-						sb.append("ajp=").append(URLEncoder.encode(p, ENCODING)).append('&');
-					}
-					sb.append("jvmroute=").append(URLEncoder.encode(ep.jvmRoute, ENCODING)).append('&');
-					sb.append("event=").append("E");
-					final byte[] body = sb.toString().getBytes(ENCODING);
-					final int retCode = request(url, connectTimeout, readTimeout, "POST",
-							"application/x-www-form-urlencoded", new ByteArrayInputStream(body), body.length);
-					// Dont retry: Info (1xx), OK (2xx), Redir (3xx), Client Error (4xx)
-					if ((retCode >= 100) && (retCode <= 499)) {
-						log.info(trace + " retCode=" + retCode + (retCode < 400 ? " (ok)" : " (noretry)"));
-						continue ENDPOINT;
-					} else {
-						final long sleep = getRandomSleep(needSleep, 100, 3000);
-						log.info(trace + " retCode=" + retCode + " sleep=" + sleep + "ms");
-						doSleep(sleep);
-						continue RETRY;
-					}
+				sb.setLength(0);
+				sb.append("ts=").append(System.currentTimeMillis()).append('&');
+				sb.append("jvmid=").append(URLEncoder.encode(jmx.getName(), ENCODING)).append('&');
+				if (customValue != null) {
+					sb.append("custom=").append(URLEncoder.encode(customValue, ENCODING)).append('&');
 				}
-				break RETRY;
-			} catch (IOException e) {
-				final long sleep = getRandomSleep(needSleep, 100, 3000);
-				log.error(trace + " sleep=" + sleep + "ms IOException: " + e, e);
-				doSleep(sleep);
+				sb.append("type=").append(initOrDestroy ? "I" : "D").append('&');
+				sb.append("service=").append(serviceName).append('&');
+				for (final String p : ep.https) {
+					sb.append("https=").append(URLEncoder.encode(p, ENCODING)).append('&');
+				}
+				for (final String p : ep.http) {
+					sb.append("http=").append(URLEncoder.encode(p, ENCODING)).append('&');
+				}
+				for (final String p : ep.ajp) {
+					sb.append("ajp=").append(URLEncoder.encode(p, ENCODING)).append('&');
+				}
+				sb.append("jvmroute=").append(URLEncoder.encode(ep.jvmRoute, ENCODING)).append('&');
+				sb.append("event=").append("E");
+				body = sb.toString();
+			} catch (UnsupportedEncodingException ex) {
+				log.error(trace + " UnsupportedEncodingException: " + ex);
+				return;
+			}
+			//
+			if (enqueue) {
+				NotifierRunner.getInstance().submit(trace, body);
+			} else {
+				final int ret = notify(body);
+				if (ret < 0) {
+					log.error(trace + " retCode=" + ret + " (error)");
+				} else {
+					log.info(trace + " retCode=" + ret + " (ok)");
+				}
 			}
 		}
 	}

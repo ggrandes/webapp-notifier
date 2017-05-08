@@ -1,109 +1,113 @@
 package org.javastack.webappnotifier.util;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 
-public class NotifierRunner {
+import org.apache.juli.logging.Log;
+import org.apache.juli.logging.LogFactory;
+
+public class NotifierRunner extends GenericNotifier implements Runnable {
 	private static final NotifierRunner singleton = new NotifierRunner();
-	private static final String PROP_EXECUTOR_KEY = "ec26e2b1-02c6-4639-a679-b3576ba6cb4f";
+	private static final String PROP_QUEUE_KEY = "9fd4e95e-2195-4847-a450-59ad858ce8d0";
+	private static final int SHUTDOWN_TIMEOUT = 10000;
+	private Thread runner = null;
 
 	private NotifierRunner() {
+		super();
 	}
 
 	public static NotifierRunner getInstance() {
 		return singleton;
 	}
 
-	private ExecutorService getPool() {
-		return (ExecutorService) System.getProperties().get(PROP_EXECUTOR_KEY);
+	@Override
+	public void run() {
+		final Log log = LogFactory.getLog(NotifierRunner.class);
+		Queue<String[]> queue = null;
+		while ((queue = getQueue()) != null) {
+			final String[] e = queue.poll();
+			try {
+				if (e != null) {
+					final String trace = e[0];
+					final String body = e[1];
+					final int ret = notify(body);
+					if (ret < 0) {
+						log.error(trace + " retCode=" + ret + " (error)");
+					} else {
+						log.info(trace + " retCode=" + ret + " (ok)");
+					}
+				} else {
+					Thread.sleep(100);
+				}
+			} catch (Exception ex) {
+			}
+		}
 	}
 
-	private void setPool(final ExecutorService pool) {
-		if (pool != null) {
-			System.getProperties().put(PROP_EXECUTOR_KEY, pool);
+	private Queue<String[]> getQueue() {
+		@SuppressWarnings("unchecked")
+		final Queue<String[]> queue = (Queue<String[]>) System.getProperties().get(PROP_QUEUE_KEY);
+		return queue;
+	}
+
+	private void setQueue(final Queue<String> queue) {
+		if (queue != null) {
+			System.getProperties().put(PROP_QUEUE_KEY, queue);
 		} else {
-			System.getProperties().remove(PROP_EXECUTOR_KEY);
+			System.getProperties().remove(PROP_QUEUE_KEY);
 		}
 	}
 
 	public void init() {
 		synchronized (System.class) {
 			if (!isReady()) {
-				final ExecutorService pool = Executors.newSingleThreadExecutor(new DaemonThreadFactory());
-				pool.submit(new Runnable() {
-					@Override
-					public void run() {
-					}
-				});
-				setPool(pool);
+				setQueue(new ArrayBlockingQueue<String>(1024));
+				runner = new Thread(this, NotifierRunner.class.getSimpleName());
+				runner.setDaemon(true);
+				runner.setPriority(Thread.NORM_PRIORITY);
+				runner.start();
 			}
 		}
 	}
 
 	public boolean isReady() {
 		synchronized (System.class) {
-			final ExecutorService pool = getPool();
-			return ((pool != null) && !pool.isShutdown());
+			final Queue<String[]> queue = getQueue();
+			return (queue != null);
 		}
 	}
 
-	public Future<?> submit(final Runnable task) {
+	public void submit(final String trace, final String task) {
 		synchronized (System.class) {
-			if (isReady()) {
-				final ExecutorService pool = getPool();
-				return pool.submit(task);
+			final Queue<String[]> queue = getQueue();
+			if (queue != null) {
+				queue.offer(new String[] { trace, task });
 			}
 		}
-		return null;
 	}
 
 	public boolean destroy() {
 		synchronized (System.class) {
-			final ExecutorService pool = getPool();
-			if (pool != null) {
-				try {
-					return shutdownAndAwaitTermination(pool);
-				} finally {
-					setPool(null);
-				}
+			final Queue<String[]> queue = getQueue();
+			if (queue == null) {
+				return true;
+			}
+			try {
+				return awaitTermination(queue);
+			} finally {
+				setQueue(null);
 			}
 		}
-		return true;
 	}
 
-	private boolean shutdownAndAwaitTermination(final ExecutorService pool) {
-		if (pool == null)
-			return true;
-		pool.shutdown(); // Disable new tasks from being submitted
-		try {
-			// Wait a while for existing tasks to terminate
-			if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
-				pool.shutdownNow(); // Cancel currently executing tasks
-				// Wait a while for tasks to respond to being cancelled
-				pool.awaitTermination(5, TimeUnit.SECONDS);
+	private boolean awaitTermination(final Queue<String[]> queue) {
+		final long expire = System.currentTimeMillis() + SHUTDOWN_TIMEOUT;
+		while (!queue.isEmpty() && (System.currentTimeMillis() < expire)) {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e1) {
 			}
-		} catch (InterruptedException ie) {
-			// (Re-)Cancel if current thread also interrupted
-			pool.shutdownNow();
-			// Preserve interrupt status
-			Thread.currentThread().interrupt();
 		}
-		return pool.isTerminated();
-	}
-
-	private static class DaemonThreadFactory implements ThreadFactory {
-		private final AtomicInteger threadNumber = new AtomicInteger(1);
-
-		public Thread newThread(final Runnable r) {
-			final Thread t = new Thread(r,
-					NotifierRunner.class.getSimpleName() + "-" + threadNumber.getAndIncrement());
-			t.setDaemon(true);
-			t.setPriority(Thread.NORM_PRIORITY);
-			return t;
-		}
+		return queue.isEmpty();
 	}
 }

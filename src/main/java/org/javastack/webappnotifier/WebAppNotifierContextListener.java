@@ -1,8 +1,6 @@
 package org.javastack.webappnotifier;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.net.URL;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 import javax.servlet.ServletContext;
@@ -48,16 +46,43 @@ public class WebAppNotifierContextListener extends GenericNotifier implements Se
 		}
 		final boolean enqueue = NotifierRunner.getInstance().isReady();
 		final ServletContext ctx = contextEvent.getServletContext();
-		ctx.log(getClass().getName() + " Context " + (enqueue ? "ENQUEUE" : "BLOCKING") + " mode");
 		final String service = getServiceName(ctx);
+		final String path = ctx.getContextPath();
+		final String basename = getContextBaseName(ctx);
+		final String trace = getClass().getName() + " context(" + (enqueue ? "QUEUE" : "BLOCKING") + "): " + //
+				(initOrDestroy ? "Initialized" : "Destroyed") + //
+				" path=" + path + //
+				" basename=" + basename + //
+				" service=" + service + //
+				" connect=" + connectTimeout + "ms" + //
+				" read=" + readTimeout + "ms" + //
+				" notifyURL=" + notifyURL;
+		ctx.log(trace);
+		//
+		final String body;
+		try {
+			final StringBuilder sb = new StringBuilder();
+			sb.append("ts=").append(System.currentTimeMillis()).append('&');
+			sb.append("jvmid=").append(URLEncoder.encode(jmx.getName(), ENCODING)).append('&');
+			if (customValue != null) {
+				sb.append("custom=").append(URLEncoder.encode(customValue, ENCODING)).append('&');
+			}
+			sb.append("type=").append(initOrDestroy ? "I" : "D").append('&');
+			sb.append("path=").append(URLEncoder.encode(path, ENCODING)).append('&');
+			sb.append("basename=").append(URLEncoder.encode(basename, ENCODING)).append('&');
+			sb.append("service=").append(URLEncoder.encode(service, ENCODING)).append('&');
+			sb.append("event=").append("C");
+			body = sb.toString();
+		} catch (UnsupportedEncodingException ex) {
+			ctx.log(trace + " UnsupportedEncodingException: " + ex);
+			return;
+		}
+		//
 		if (enqueue) {
-			NotifierRunner.getInstance().submit(new Thread() {
-				public void run() {
-					doContextNotify(ctx, service, initOrDestroy);
-				}
-			});
+			NotifierRunner.getInstance().submit(trace, body);
 		} else {
-			doContextNotify(ctx, service, initOrDestroy);
+			final int ret = notify(body);
+			ctx.log(trace + " retCode=" + ret + (ret < 0 ? " (error)" : " (ok)"));
 		}
 	}
 
@@ -94,52 +119,5 @@ public class WebAppNotifierContextListener extends GenericNotifier implements Se
 		service = "";
 		ctx.setAttribute(KEY_CACHE, service);
 		return service;
-	}
-
-	private final void doContextNotify(final ServletContext ctx, final String service, final boolean initOrDestroy) {
-		final String path = ctx.getContextPath();
-		final String basename = getContextBaseName(ctx);
-		for (int i = 0; i < tries; i++) {
-			final String trace = getClass().getName() + " context: " + //
-					(initOrDestroy ? "Initialized" : "Destroyed") + //
-					" path=" + path + //
-					" basename=" + basename + //
-					" service=" + service + //
-					" connect=" + connectTimeout + "ms" + //
-					" read=" + readTimeout + "ms" + //
-					" try=" + (i + 1) + "/" + tries + //
-					" notifyURL=" + notifyURL;
-			final boolean needSleep = ((i + 1) < tries);
-			try {
-				final URL url = new URL(notifyURL);
-				final StringBuilder sb = new StringBuilder();
-				sb.append("ts=").append(System.currentTimeMillis()).append('&');
-				sb.append("jvmid=").append(URLEncoder.encode(jmx.getName(), ENCODING)).append('&');
-				if (customValue != null) {
-					sb.append("custom=").append(URLEncoder.encode(customValue, ENCODING)).append('&');
-				}
-				sb.append("type=").append(initOrDestroy ? "I" : "D").append('&');
-				sb.append("path=").append(URLEncoder.encode(path, ENCODING)).append('&');
-				sb.append("basename=").append(URLEncoder.encode(basename, ENCODING)).append('&');
-				sb.append("service=").append(URLEncoder.encode(service, ENCODING)).append('&');
-				sb.append("event=").append("C");
-				final byte[] body = sb.toString().getBytes(ENCODING);
-				final int retCode = request(url, connectTimeout, readTimeout, "POST",
-						"application/x-www-form-urlencoded", new ByteArrayInputStream(body), body.length);
-				// Dont retry: Info (1xx), OK (2xx), Redir (3xx), Client Error (4xx)
-				if ((retCode >= 100) && (retCode <= 499)) {
-					ctx.log(trace + " retCode=" + retCode + (retCode < 400 ? " (ok)" : " (noretry)"));
-					break;
-				} else {
-					final long sleep = getRandomSleep(needSleep, 100, 3000);
-					ctx.log(trace + " retCode=" + retCode + " sleep=" + sleep + "ms");
-					doSleep(sleep);
-				}
-			} catch (IOException e) {
-				final long sleep = getRandomSleep(needSleep, 100, 3000);
-				ctx.log(trace + " sleep=" + sleep + "ms IOException: " + e, e);
-				doSleep(sleep);
-			}
-		}
 	}
 }

@@ -1,5 +1,6 @@
 package org.javastack.webappnotifier.util;
 
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -89,6 +90,42 @@ public class GenericNotifier {
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		}
+	}
+
+	protected final int notify(final String body) {
+		if (notifyURL == null) {
+			return 0;
+		}
+		int retCode = -3;
+		final byte[] buf = body.getBytes();
+		for (int i = 0; i < tries; i++) {
+			final boolean needSleep = ((i + 1) < tries);
+			try {
+				final URL url = new URL(notifyURL);
+				retCode = request(url, connectTimeout, readTimeout, "POST",
+						"application/x-www-form-urlencoded", new ByteArrayInputStream(buf), buf.length);
+				// Dont retry: Info (1xx), OK (2xx), Redir (3xx), Client Error (4xx)
+				if ((retCode >= 100) && (retCode <= 399)) {
+					return (retCode / 100);
+				} else if ((retCode >= 400) && (retCode <= 499)) {
+					// ctx.log(trace + " retCode=" + retCode + (retCode < 400 ? " (ok)" : " (noretry)"));
+					return -retCode;
+				} else {
+					final long sleep = getRandomSleep(needSleep, 100, 3000);
+					// ctx.log(trace + " retCode=" + retCode + " sleep=" + sleep + "ms");
+					doSleep(sleep);
+					if (retCode > 0) {
+						retCode = -retCode;
+					}
+				}
+			} catch (IOException e) {
+				final long sleep = getRandomSleep(needSleep, 100, 3000);
+				// ctx.log(trace + " sleep=" + sleep + "ms IOException: " + e, e);
+				doSleep(sleep);
+				retCode = -2;
+			}
+		}
+		return retCode;
 	}
 
 	protected final int request(final URL url, final int connectTimeout, final int readTimeout,
