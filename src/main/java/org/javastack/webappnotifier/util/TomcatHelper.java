@@ -2,7 +2,7 @@ package org.javastack.webappnotifier.util;
 
 import java.lang.reflect.Field;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.apache.catalina.Container;
 import org.apache.catalina.core.ApplicationContext;

@@ -3,10 +3,10 @@ package org.javastack.webappnotifier;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.annotation.WebListener;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
+import jakarta.servlet.annotation.WebListener;
 
 import org.javastack.webappnotifier.util.GenericNotifier;
 import org.javastack.webappnotifier.util.NotifierRunner;
